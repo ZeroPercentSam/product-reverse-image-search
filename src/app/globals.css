@@ -1,1 +1,31 @@
 @import "tailwindcss";
+
+@theme {
+  --color-primary: #1C1917;
+  --color-secondary: #44403C;
+  --color-accent: #A16207;
+  --color-accent-light: #CA8A04;
+  --color-surface: #FAFAF9;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #0C0A09;
+  --color-muted: #F5F5F4;
+  --color-muted-foreground: #78716C;
+  --color-border: #E7E5E4;
+  --color-ring: #1C1917;
+}
+
+body {
+  background-color: var(--color-surface);
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background-color: #A1620720;
+}
+
+/* Tabular numbers for prices */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}

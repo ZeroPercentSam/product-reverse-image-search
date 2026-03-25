@@ -60,7 +60,7 @@ export default function SearchForm() {
         <div>
           <label
             htmlFor="imageUrl"
-            className="mb-1 block text-sm font-medium text-neutral-700"
+            className="mb-2 block text-xs font-medium uppercase tracking-widest text-muted-foreground"
           >
             Image URL
           </label>
@@ -75,24 +75,24 @@ export default function SearchForm() {
             placeholder="https://example.com/product-image.jpg"
             required
             disabled={loading}
-            className="w-full rounded-lg border border-neutral-300 px-4 py-3 text-neutral-900 placeholder-neutral-400 transition focus:border-neutral-900 focus:outline-none focus:ring-1 focus:ring-neutral-900 disabled:opacity-50"
+            className="w-full rounded-xl border border-border bg-card px-5 py-3.5 text-card-foreground placeholder-stone-400 shadow-sm transition-all duration-200 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 disabled:opacity-50"
           />
         </div>
 
         {imageUrl && !previewError && (
-          <div className="overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50">
+          <div className="overflow-hidden rounded-xl border border-border bg-muted shadow-sm">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={imageUrl}
               alt="Preview"
-              className="mx-auto max-h-64 object-contain"
+              className="mx-auto max-h-72 object-contain p-4"
               onError={() => setPreviewError(true)}
             />
           </div>
         )}
 
         {imageUrl && previewError && (
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm text-muted-foreground">
             Preview unavailable — the image will still be searched.
           </p>
         )}
@@ -100,10 +100,10 @@ export default function SearchForm() {
         <button
           type="submit"
           disabled={loading || !imageUrl.trim()}
-          className="w-full rounded-lg bg-neutral-900 px-6 py-3 font-medium text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full cursor-pointer rounded-xl bg-primary px-6 py-3.5 text-sm font-semibold tracking-wide text-white shadow-md transition-all duration-200 hover:bg-secondary hover:shadow-lg active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
         >
           {loading ? (
-            <span className="inline-flex items-center gap-2">
+            <span className="inline-flex items-center gap-2.5">
               <svg
                 className="h-4 w-4 animate-spin"
                 viewBox="0 0 24 24"
@@ -132,7 +132,7 @@ export default function SearchForm() {
       </form>
 
       {error && (
-        <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           {error}
         </div>
       )}
@@ -140,14 +140,14 @@ export default function SearchForm() {
       {result && <ResultCard data={result} />}
 
       {recordId && (
-        <div className="mt-4 flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-4">
-          <svg className="h-5 w-5 shrink-0 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <div className="mt-5 flex items-center gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
+          <svg className="h-4 w-4 shrink-0 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101M10.172 13.828a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
           </svg>
           <input
             readOnly
             value={`${window.location.origin}/product/${recordId}`}
-            className="flex-1 truncate bg-transparent text-sm text-neutral-700 outline-none"
+            className="flex-1 truncate bg-transparent text-sm text-muted-foreground outline-none"
           />
           <button
             onClick={() => {
@@ -155,7 +155,7 @@ export default function SearchForm() {
               setCopied(true);
               setTimeout(() => setCopied(false), 2000);
             }}
-            className="shrink-0 rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-neutral-800"
+            className="shrink-0 cursor-pointer rounded-lg bg-accent px-4 py-1.5 text-xs font-semibold text-white transition-all duration-200 hover:bg-accent-light active:scale-95"
           >
             {copied ? "Copied!" : "Copy Link"}
           </button>
@@ -174,16 +174,16 @@ export default function SearchForm() {
       )}
 
       {(result || error) && (
-        <div className="mt-6">
+        <div className="mt-8">
           <button
             type="button"
             onClick={() => setShowDebug(!showDebug)}
-            className="text-xs text-neutral-400 transition hover:text-neutral-600"
+            className="cursor-pointer text-xs text-stone-400 transition hover:text-muted-foreground"
           >
             {showDebug ? "Hide" : "Show"} Debug Info
           </button>
           {showDebug && lensData && (
-            <pre className="mt-2 max-h-96 overflow-auto rounded-lg bg-neutral-900 p-4 text-xs text-green-400">
+            <pre className="mt-2 max-h-96 overflow-auto rounded-xl bg-primary p-4 text-xs text-stone-400">
               {JSON.stringify({ lensData, listingsData }, null, 2)}
             </pre>
           )}

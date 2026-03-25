@@ -7,9 +7,9 @@ type SortKey = "price-asc" | "price-desc" | "source";
 type ConditionFilter = "all" | "new" | "pre-owned";
 
 const conditionBadge: Record<string, string> = {
-  new: "bg-green-100 text-green-800",
-  "pre-owned": "bg-amber-100 text-amber-800",
-  unknown: "bg-neutral-100 text-neutral-600",
+  new: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  "pre-owned": "bg-amber-50 text-amber-700 border-amber-200",
+  unknown: "bg-stone-100 text-stone-500 border-stone-200",
 };
 
 export default function ListingsTable({
@@ -44,15 +44,18 @@ export default function ListingsTable({
   if (listings.length === 0) return null;
 
   return (
-    <div className="mt-8 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h3 className="font-serif text-xl font-bold text-neutral-900">
-          Available Listings ({filtered.length})
+    <div className="mt-8 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/50 px-6 py-5 sm:px-8">
+        <h3 className="font-[family-name:var(--font-playfair)] text-2xl font-bold tracking-tight text-primary">
+          Available Listings
+          <span className="ml-2 tabular-nums text-base font-normal text-muted-foreground">
+            {filtered.length}
+          </span>
         </h3>
 
         <div className="flex flex-wrap gap-2">
           {/* Condition filter */}
-          <div className="flex rounded-lg border border-neutral-200 text-xs">
+          <div className="flex overflow-hidden rounded-lg border border-border text-xs">
             {(
               [
                 ["all", `All (${listings.length})`],
@@ -63,11 +66,11 @@ export default function ListingsTable({
               <button
                 key={key}
                 onClick={() => setFilter(key)}
-                className={`px-3 py-1.5 transition ${
+                className={`cursor-pointer px-3.5 py-2 font-medium transition-all duration-150 ${
                   filter === key
-                    ? "bg-neutral-900 text-white"
-                    : "text-neutral-600 hover:bg-neutral-50"
-                } ${key === "all" ? "rounded-l-lg" : ""} ${key === "pre-owned" ? "rounded-r-lg" : ""}`}
+                    ? "bg-primary text-white"
+                    : "bg-card text-muted-foreground hover:bg-muted"
+                }`}
               >
                 {label}
               </button>
@@ -78,42 +81,42 @@ export default function ListingsTable({
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value as SortKey)}
-            className="rounded-lg border border-neutral-200 px-3 py-1.5 text-xs text-neutral-700"
+            className="cursor-pointer rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-secondary"
           >
-            <option value="price-asc">Price: Low → High</option>
-            <option value="price-desc">Price: High → Low</option>
+            <option value="price-asc">Price: Low to High</option>
+            <option value="price-desc">Price: High to Low</option>
             <option value="source">Source A-Z</option>
           </select>
         </div>
       </div>
 
-      <div className="space-y-2">
+      <div className="divide-y divide-border">
         {visible.map((listing) => (
           <a
             key={listing.id}
             href={listing.link}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-3 rounded-lg border border-neutral-200 p-3 transition hover:bg-neutral-50"
+            className="flex cursor-pointer items-center gap-4 px-6 py-4 transition-colors duration-150 hover:bg-muted/50 sm:px-8"
           >
             {listing.thumbnail && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={listing.thumbnail}
                 alt=""
-                className="h-12 w-12 shrink-0 rounded-md object-cover"
+                className="h-14 w-14 shrink-0 rounded-lg border border-border object-cover"
               />
             )}
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-neutral-800">
+              <p className="truncate text-sm font-medium text-primary">
                 {listing.title}
               </p>
-              <div className="mt-0.5 flex items-center gap-2">
-                <span className="text-xs text-neutral-500">
+              <div className="mt-1 flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">
                   {listing.source}
                 </span>
                 <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${conditionBadge[listing.condition]}`}
+                  className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${conditionBadge[listing.condition]}`}
                 >
                   {listing.condition}
                 </span>
@@ -121,45 +124,39 @@ export default function ListingsTable({
             </div>
             <div className="shrink-0 text-right">
               {listing.priceFormatted ? (
-                <span className="text-sm font-semibold text-neutral-900">
+                <span className="tabular-nums text-sm font-bold text-primary">
                   {listing.priceFormatted}
                 </span>
               ) : (
-                <span className="text-xs text-neutral-400">No price</span>
+                <span className="text-xs text-stone-400">No price</span>
               )}
             </div>
             <svg
-              className="h-4 w-4 shrink-0 text-neutral-400"
+              className="h-4 w-4 shrink-0 text-stone-300"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
-              strokeWidth={2}
+              strokeWidth={1.5}
             >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25"
               />
             </svg>
           </a>
         ))}
       </div>
 
-      {hasMore && !expanded && (
-        <button
-          onClick={() => setExpanded(true)}
-          className="mt-3 w-full rounded-lg border border-neutral-200 py-2 text-sm font-medium text-neutral-600 transition hover:bg-neutral-50"
-        >
-          Show all {filtered.length} listings
-        </button>
-      )}
-      {expanded && hasMore && (
-        <button
-          onClick={() => setExpanded(false)}
-          className="mt-3 w-full rounded-lg border border-neutral-200 py-2 text-sm font-medium text-neutral-600 transition hover:bg-neutral-50"
-        >
-          Show less
-        </button>
+      {hasMore && (
+        <div className="border-t border-border px-6 py-4 sm:px-8">
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="w-full cursor-pointer rounded-xl border border-border py-2.5 text-sm font-medium text-muted-foreground transition-all duration-150 hover:border-accent hover:text-accent"
+          >
+            {expanded ? "Show less" : `Show all ${filtered.length} listings`}
+          </button>
+        </div>
       )}
     </div>
   );

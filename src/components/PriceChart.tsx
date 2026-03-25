@@ -13,9 +13,9 @@ import {
 } from "recharts";
 
 const conditionColor: Record<string, string> = {
-  new: "#16a34a",
-  "pre-owned": "#d97706",
-  unknown: "#9ca3af",
+  new: "#059669",
+  "pre-owned": "#A16207",
+  unknown: "#A8A29E",
 };
 
 interface ChartDataPoint {
@@ -25,15 +25,18 @@ interface ChartDataPoint {
   condition: string;
   link: string;
   fill: string;
+  x: number;
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function StatCard({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className="flex flex-col items-center rounded-lg border border-neutral-200 bg-white px-4 py-3">
-      <span className="text-xs font-medium uppercase tracking-wider text-neutral-500">
+    <div className={`flex flex-col items-center rounded-xl border px-4 py-3.5 ${accent ? "border-accent/30 bg-accent/5" : "border-border bg-card"}`}>
+      <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
         {label}
       </span>
-      <span className="text-lg font-bold text-neutral-900">{value}</span>
+      <span className={`mt-0.5 tabular-nums text-lg font-bold ${accent ? "text-accent" : "text-primary"}`}>
+        {value}
+      </span>
     </div>
   );
 }
@@ -48,17 +51,17 @@ function CustomTooltip({
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-3 shadow-lg">
-      <p className="max-w-[250px] truncate text-sm font-semibold text-neutral-800">
+    <div className="rounded-xl border border-border bg-card p-3.5 shadow-xl">
+      <p className="max-w-[260px] truncate text-sm font-semibold text-primary">
         {d.title}
       </p>
-      <p className="text-xs text-neutral-500">{d.source}</p>
-      <div className="mt-1 flex items-center gap-2">
-        <span className="text-sm font-bold text-neutral-900">
+      <p className="mt-0.5 text-xs text-muted-foreground">{d.source}</p>
+      <div className="mt-2 flex items-center gap-2">
+        <span className="tabular-nums text-base font-bold text-primary">
           ${d.price.toLocaleString()}
         </span>
         <span
-          className="rounded-full px-2 py-0.5 text-xs font-medium text-white"
+          className="rounded-full px-2 py-0.5 text-[10px] font-semibold text-white"
           style={{ backgroundColor: d.fill }}
         >
           {d.condition}
@@ -79,12 +82,10 @@ export default function PriceChart({
 
   if (pricedListings.length < 2) return null;
 
-  // Build chart data grouped by source
   const sourceCounts = new Map<string, number>();
   pricedListings.forEach((l) => {
     sourceCounts.set(l.source, (sourceCounts.get(l.source) || 0) + 1);
   });
-  // Sort sources by count descending, take top 15
   const topSources = [...sourceCounts.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, 15)
@@ -107,85 +108,97 @@ export default function PriceChart({
     `$${v.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 
   return (
-    <div className="mt-8 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-      <h3 className="mb-4 font-serif text-xl font-bold text-neutral-900">
-        Price Index
-      </h3>
-
-      {/* Stats row */}
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
-        <StatCard label="Lowest" value={fmt(stats.min)} />
-        <StatCard label="Highest" value={fmt(stats.max)} />
-        <StatCard label="Median" value={fmt(stats.median)} />
-        <StatCard label="Average" value={fmt(stats.average)} />
-        <StatCard label="Listings" value={String(stats.count)} />
+    <div className="mt-8 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      <div className="border-b border-border bg-muted/50 px-6 py-5 sm:px-8">
+        <h3 className="font-[family-name:var(--font-playfair)] text-2xl font-bold tracking-tight text-primary">
+          Price Index
+        </h3>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Market pricing across {topSources.length} sources
+        </p>
       </div>
 
-      {/* Condition breakdown */}
-      {(stats.byCondition.new || stats.byCondition.preOwned) && (
-        <div className="mb-4 flex flex-wrap gap-4 text-xs">
-          {stats.byCondition.new && (
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block h-2.5 w-2.5 rounded-full bg-green-600" />
-              New: {fmt(stats.byCondition.new.median)} median ({stats.byCondition.new.count})
-            </span>
-          )}
-          {stats.byCondition.preOwned && (
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block h-2.5 w-2.5 rounded-full bg-amber-600" />
-              Pre-owned: {fmt(stats.byCondition.preOwned.median)} median ({stats.byCondition.preOwned.count})
-            </span>
-          )}
+      <div className="space-y-6 px-6 py-6 sm:px-8">
+        {/* Stats row */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+          <StatCard label="Lowest" value={fmt(stats.min)} />
+          <StatCard label="Highest" value={fmt(stats.max)} />
+          <StatCard label="Median" value={fmt(stats.median)} accent />
+          <StatCard label="Average" value={fmt(stats.average)} />
+          <StatCard label="Listings" value={String(stats.count)} />
         </div>
-      )}
 
-      {/* Scatter chart */}
-      <ResponsiveContainer width="100%" height={300}>
-        <ScatterChart margin={{ top: 10, right: 10, bottom: 40, left: 60 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
-          <XAxis
-            type="number"
-            dataKey="x"
-            domain={[-0.5, topSources.length - 0.5]}
-            ticks={topSources.map((_, i) => i)}
-            tickFormatter={(i: number) => {
-              const name = topSources[i];
-              return name?.length > 12 ? name.slice(0, 12) + "…" : name || "";
-            }}
-            tick={{ fontSize: 10, fill: "#737373" }}
-            angle={-35}
-            textAnchor="end"
-            interval={0}
-          />
-          <YAxis
-            type="number"
-            dataKey="price"
-            tickFormatter={(v: number) => `$${(v / 1000).toFixed(1)}k`}
-            tick={{ fontSize: 11, fill: "#737373" }}
-            label={{
-              value: "Price (USD)",
-              angle: -90,
-              position: "insideLeft",
-              offset: -45,
-              style: { fontSize: 11, fill: "#a3a3a3" },
-            }}
-          />
-          <Tooltip content={<CustomTooltip />} />
-          <ReferenceLine
-            y={stats.median}
-            stroke="#6366f1"
-            strokeDasharray="6 4"
-            strokeWidth={1.5}
-            label={{
-              value: `Median ${fmt(stats.median)}`,
-              position: "right",
-              fill: "#6366f1",
-              fontSize: 11,
-            }}
-          />
-          <Scatter data={chartData} />
-        </ScatterChart>
-      </ResponsiveContainer>
+        {/* Condition legend */}
+        {(stats.byCondition.new || stats.byCondition.preOwned) && (
+          <div className="flex flex-wrap gap-5 text-xs text-muted-foreground">
+            {stats.byCondition.new && (
+              <span className="flex items-center gap-2">
+                <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: conditionColor.new }} />
+                New: {fmt(stats.byCondition.new.median)} median ({stats.byCondition.new.count})
+              </span>
+            )}
+            {stats.byCondition.preOwned && (
+              <span className="flex items-center gap-2">
+                <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: conditionColor["pre-owned"] }} />
+                Pre-owned: {fmt(stats.byCondition.preOwned.median)} median ({stats.byCondition.preOwned.count})
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Chart */}
+        <ResponsiveContainer width="100%" height={300}>
+          <ScatterChart margin={{ top: 10, right: 10, bottom: 40, left: 60 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" />
+            <XAxis
+              type="number"
+              dataKey="x"
+              domain={[-0.5, topSources.length - 0.5]}
+              ticks={topSources.map((_, i) => i)}
+              tickFormatter={(i: number) => {
+                const name = topSources[i];
+                return name?.length > 12 ? name.slice(0, 12) + "\u2026" : name || "";
+              }}
+              tick={{ fontSize: 10, fill: "#78716C" }}
+              angle={-35}
+              textAnchor="end"
+              interval={0}
+              axisLine={{ stroke: "#D6D3D1" }}
+              tickLine={{ stroke: "#D6D3D1" }}
+            />
+            <YAxis
+              type="number"
+              dataKey="price"
+              tickFormatter={(v: number) => `$${(v / 1000).toFixed(1)}k`}
+              tick={{ fontSize: 11, fill: "#78716C" }}
+              axisLine={{ stroke: "#D6D3D1" }}
+              tickLine={{ stroke: "#D6D3D1" }}
+              label={{
+                value: "Price (USD)",
+                angle: -90,
+                position: "insideLeft",
+                offset: -45,
+                style: { fontSize: 11, fill: "#A8A29E" },
+              }}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <ReferenceLine
+              y={stats.median}
+              stroke="#A16207"
+              strokeDasharray="6 4"
+              strokeWidth={1.5}
+              label={{
+                value: `Median ${fmt(stats.median)}`,
+                position: "right",
+                fill: "#A16207",
+                fontSize: 11,
+                fontWeight: 600,
+              }}
+            />
+            <Scatter data={chartData} />
+          </ScatterChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }

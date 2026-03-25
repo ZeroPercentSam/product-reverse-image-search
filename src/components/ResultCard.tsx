@@ -2,83 +2,93 @@
 
 import { ProductAnalysis } from "@/lib/types";
 
-const confidenceColors = {
-  High: "bg-green-100 text-green-800",
-  Medium: "bg-yellow-100 text-yellow-800",
-  Low: "bg-red-100 text-red-800",
+const confidenceStyles = {
+  High: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  Medium: "bg-amber-50 text-amber-700 border-amber-200",
+  Low: "bg-red-50 text-red-700 border-red-200",
 };
 
 const scoreColor = (score: number) => {
-  if (score >= 80) return "text-green-600";
-  if (score >= 50) return "text-yellow-600";
-  return "text-red-600";
+  if (score >= 80) return "text-emerald-600";
+  if (score >= 50) return "text-amber-600";
+  return "text-red-500";
 };
 
 export default function ResultCard({ data }: { data: ProductAnalysis }) {
   return (
-    <div className="mt-8 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-      <div className="mb-4 flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-medium uppercase tracking-wider text-neutral-500">
-            {data.category}
-          </p>
-          <h2 className="font-serif text-2xl font-bold text-neutral-900">
-            {data.brand}
-          </h2>
-          <p className="text-lg text-neutral-700">{data.productName}</p>
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          <div className="flex items-center gap-2">
-            <span
-              className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${confidenceColors[data.confidence]}`}
-            >
-              {data.confidence}
-            </span>
-            {data.confidenceScore != null && (
-              <span className={`text-sm font-bold ${scoreColor(data.confidenceScore)}`}>
-                {data.confidenceScore}%
-              </span>
-            )}
+    <div className="mt-8 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      {/* Header band */}
+      <div className="border-b border-border bg-muted/50 px-6 py-5 sm:px-8">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-accent">
+              {data.category}
+            </p>
+            <h2 className="mt-1 font-[family-name:var(--font-playfair)] text-3xl font-bold tracking-tight text-primary">
+              {data.brand}
+            </h2>
+            <p className="mt-0.5 text-base text-secondary">{data.productName}</p>
           </div>
-          <span className="inline-block rounded-full bg-neutral-100 px-3 py-1 text-sm font-semibold text-neutral-800">
-            {data.priceRange}
-          </span>
+          <div className="flex flex-col items-end gap-2.5">
+            <div className="flex items-center gap-2">
+              <span
+                className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold ${confidenceStyles[data.confidence]}`}
+              >
+                {data.confidence}
+              </span>
+              {data.confidenceScore != null && (
+                <span className={`tabular-nums text-sm font-bold ${scoreColor(data.confidenceScore)}`}>
+                  {data.confidenceScore}%
+                </span>
+              )}
+            </div>
+            <span className="tabular-nums rounded-full bg-primary px-4 py-1 text-sm font-semibold text-white">
+              {data.priceRange}
+            </span>
+          </div>
         </div>
       </div>
 
-      <p className="mb-4 text-neutral-600">{data.summary}</p>
+      {/* Body */}
+      <div className="space-y-5 px-6 py-6 sm:px-8">
+        <p className="leading-relaxed text-secondary">{data.summary}</p>
 
-      {data.features.length > 0 && (
-        <div className="mb-4">
-          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-neutral-500">
-            Key Features
-          </h3>
-          <ul className="list-inside list-disc space-y-1 text-neutral-700">
-            {data.features.map((feature, i) => (
-              <li key={i}>{feature}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+        {data.features.length > 0 && (
+          <div>
+            <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+              Key Features
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {data.features.map((feature, i) => (
+                <span
+                  key={i}
+                  className="rounded-full border border-border bg-muted px-3 py-1 text-xs text-secondary"
+                >
+                  {feature}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
-      {data.verificationNotes && (
-        <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
-          <h3 className="mb-1 text-sm font-semibold text-blue-800">
-            Verification Notes
-          </h3>
-          <p className="text-sm text-blue-700">{data.verificationNotes}</p>
-        </div>
-      )}
+        {data.verificationNotes && (
+          <div className="rounded-xl border border-sky-200 bg-sky-50 p-4">
+            <h3 className="mb-1 text-xs font-semibold uppercase tracking-wider text-sky-700">
+              Verification Notes
+            </h3>
+            <p className="text-sm leading-relaxed text-sky-700">{data.verificationNotes}</p>
+          </div>
+        )}
 
-      {data.authenticationNotes && (
-        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
-          <h3 className="mb-1 text-sm font-semibold text-amber-800">
-            Authentication Notes
-          </h3>
-          <p className="text-sm text-amber-700">{data.authenticationNotes}</p>
-        </div>
-      )}
-
+        {data.authenticationNotes && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <h3 className="mb-1 text-xs font-semibold uppercase tracking-wider text-amber-700">
+              Authentication Notes
+            </h3>
+            <p className="text-sm leading-relaxed text-amber-700">{data.authenticationNotes}</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

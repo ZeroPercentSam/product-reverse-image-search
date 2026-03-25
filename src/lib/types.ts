@@ -20,6 +20,8 @@ export interface CompressedSearchData {
     title: string;
     snippet: string;
     link: string;
+    source?: string;
+    price?: string;
   }>;
   inlineImages: Array<{
     title?: string;

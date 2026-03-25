@@ -23,11 +23,15 @@ export async function POST(request: Request) {
       );
     }
 
+    console.log("[API] Received identify request for URL:", imageUrl);
+
     // Step 1: Reverse image search via SerpAPI
     const searchData = await searchByImage(imageUrl);
+    console.log("[API] SerpAPI returned", searchData.topResults.length, "results, knowledge_graph:", !!searchData.knowledgeGraph);
 
     // Step 2: AI product identification via OpenRouter
     const analysis = await identifyProduct(searchData);
+    console.log("[API] AI identified:", analysis.brand, "-", analysis.productName, "(", analysis.confidence, ")");
 
     return NextResponse.json({ success: true, data: analysis, searchData });
   } catch (error) {

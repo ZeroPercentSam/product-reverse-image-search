@@ -15,6 +15,8 @@ export default function SearchForm() {
   const [error, setError] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
+  const [recordId, setRecordId] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,6 +27,8 @@ export default function SearchForm() {
     setResult(null);
     setLensData(null);
     setListingsData(null);
+    setRecordId(null);
+    setCopied(false);
 
     try {
       const res = await fetch("/api/identify", {
@@ -41,6 +45,7 @@ export default function SearchForm() {
         setResult(data.data);
         setLensData(data.lensData || null);
         setListingsData(data.listingsData || null);
+        setRecordId(data.recordId || null);
       }
     } catch {
       setError("Failed to connect to the server. Please try again.");
@@ -133,6 +138,29 @@ export default function SearchForm() {
       )}
 
       {result && <ResultCard data={result} />}
+
+      {recordId && (
+        <div className="mt-4 flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-4">
+          <svg className="h-5 w-5 shrink-0 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101M10.172 13.828a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+          </svg>
+          <input
+            readOnly
+            value={`${window.location.origin}/product/${recordId}`}
+            className="flex-1 truncate bg-transparent text-sm text-neutral-700 outline-none"
+          />
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(`${window.location.origin}/product/${recordId}`);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            }}
+            className="shrink-0 rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-neutral-800"
+          >
+            {copied ? "Copied!" : "Copy Link"}
+          </button>
+        </div>
+      )}
 
       {listingsData?.priceStats && listingsData.listings.length > 0 && (
         <PriceChart

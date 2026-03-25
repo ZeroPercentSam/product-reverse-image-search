@@ -7,6 +7,7 @@ import {
   mergeAndDeduplicate,
   computePriceStats,
 } from "@/lib/listings";
+import { supabase } from "@/lib/supabase";
 
 export async function POST(request: Request) {
   try {
@@ -72,11 +73,47 @@ export async function POST(request: Request) {
 
     console.log("[API] Total unique listings:", listings.length, "| Priced:", priceStats?.count ?? 0);
 
+    // Step 5: Save to Supabase
+    let recordId: string | null = null;
+    try {
+      const { data: record, error: dbError } = await supabase
+        .from("product_searches")
+        .insert({
+          image_url: imageUrl,
+          brand: analysis.brand,
+          product_name: analysis.productName,
+          category: analysis.category,
+          price_range: analysis.priceRange,
+          confidence: analysis.confidence,
+          confidence_score: analysis.confidenceScore,
+          summary: analysis.summary,
+          features: analysis.features,
+          authentication_notes: analysis.authenticationNotes,
+          verification_notes: analysis.verificationNotes || null,
+          sources: analysis.sources,
+          listings,
+          price_stats: priceStats,
+          lens_data: lensData,
+        })
+        .select("id")
+        .single();
+
+      if (dbError) {
+        console.error("[API] Supabase insert error:", dbError);
+      } else {
+        recordId = record.id;
+        console.log("[API] Saved to Supabase with ID:", recordId);
+      }
+    } catch (dbErr) {
+      console.error("[API] Supabase error:", dbErr);
+    }
+
     return NextResponse.json({
       success: true,
       data: analysis,
       lensData,
       listingsData: { listings, priceStats },
+      recordId,
     });
   } catch (error) {
     console.error("Identify API error:", error);

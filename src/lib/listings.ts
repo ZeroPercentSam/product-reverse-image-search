@@ -22,6 +22,109 @@ interface LensProductResult {
   thumbnail?: string;
 }
 
+// Approximate exchange rates to USD
+const EXCHANGE_RATES: Record<string, number> = {
+  USD: 1,
+  $: 1,
+  EUR: 1.09,
+  "€": 1.09,
+  GBP: 1.27,
+  "£": 1.27,
+  JPY: 0.0067,
+  "¥": 0.0067,
+  CNY: 0.14,
+  "CN¥": 0.14,
+  KRW: 0.00074,
+  "₩": 0.00074,
+  AUD: 0.65,
+  "A$": 0.65,
+  CAD: 0.73,
+  "CA$": 0.73,
+  CHF: 1.13,
+  HKD: 0.13,
+  "HK$": 0.13,
+  SGD: 0.75,
+  "S$": 0.75,
+};
+
+// Domains that use specific currencies
+const DOMAIN_CURRENCIES: Record<string, string> = {
+  ".jp": "JPY",
+  ".co.jp": "JPY",
+  "mercari.com": "JPY", // Japanese Mercari
+  "rakuten.co.jp": "JPY",
+  ".fr": "EUR",
+  ".de": "EUR",
+  ".it": "EUR",
+  ".es": "EUR",
+  ".co.uk": "GBP",
+  ".kr": "KRW",
+  ".cn": "CNY",
+  ".com.au": "AUD",
+  ".ca": "CAD",
+  ".ch": "CHF",
+  ".hk": "HKD",
+  ".sg": "SGD",
+};
+
+function detectCurrency(
+  priceValue: string | undefined,
+  currencyField: string | undefined,
+  link: string | undefined
+): string {
+  // 1. Check price string for currency symbols
+  if (priceValue) {
+    if (priceValue.includes("¥") || priceValue.includes("￥")) return "JPY";
+    if (priceValue.includes("€")) return "EUR";
+    if (priceValue.includes("£")) return "GBP";
+    if (priceValue.includes("₩")) return "KRW";
+    if (priceValue.includes("A$")) return "AUD";
+    if (priceValue.includes("CA$")) return "CAD";
+    if (priceValue.includes("HK$")) return "HKD";
+    if (priceValue.includes("S$")) return "SGD";
+    if (priceValue.includes("CHF")) return "CHF";
+  }
+
+  // 2. Check explicit currency field
+  if (currencyField && currencyField !== "$" && currencyField !== "?") {
+    return currencyField;
+  }
+
+  // 3. Infer from domain
+  if (link) {
+    try {
+      const hostname = new URL(link).hostname.toLowerCase();
+      for (const [domain, currency] of Object.entries(DOMAIN_CURRENCIES)) {
+        if (hostname.endsWith(domain) || hostname.includes(domain)) {
+          return currency;
+        }
+      }
+    } catch { /* ignore */ }
+  }
+
+  // 4. If price is very high (>50000) and source looks Japanese, likely JPY
+  return "USD";
+}
+
+function convertToUSD(price: number, currency: string): number {
+  const rate = EXCHANGE_RATES[currency] || 1;
+  return Math.round(price * rate);
+}
+
+function isLikelyJPY(price: number, link?: string, source?: string): boolean {
+  // Heuristic: if price > 50000 and source/link looks Japanese, it's JPY
+  if (price < 50000) return false;
+  const text = `${link || ""} ${source || ""}`.toLowerCase();
+  return (
+    text.includes(".jp") ||
+    text.includes("japan") ||
+    text.includes("メルカリ") ||
+    text.includes("楽天") ||
+    text.includes("セカンド") ||
+    text.includes("エルメス")
+  );
+}
+
 function stripTrackingParams(url: string): string {
   try {
     const parsed = new URL(url);
@@ -43,14 +146,68 @@ function inferCondition(title: string, rawCondition?: string): "new" | "pre-owne
     if (c.includes("pre-owned") || c.includes("used") || c.includes("refurbished")) return "pre-owned";
   }
   const t = title.toLowerCase();
-  if (t.includes("pre-owned") || t.includes("pre owned") || t.includes("used") || t.includes("vintage") || t.includes("previously owned")) return "pre-owned";
+  if (
+    t.includes("pre-owned") || t.includes("pre owned") || t.includes("used") ||
+    t.includes("vintage") || t.includes("previously owned") || t.includes("second hand") ||
+    t.includes("中古") || t.includes("occasion")
+  ) return "pre-owned";
   if (t.includes("brand new") || t.includes("sealed") || t.includes("new with tags") || t.includes("nwt")) return "new";
   return "unknown";
 }
 
-function formatPrice(price: number, currency: string = "$"): string {
-  const sym = currency === "USD" || currency === "$" ? "$" : currency;
-  return `${sym}${price.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+function isRelevantListing(title: string, brand: string, productName: string): boolean {
+  const t = title.toLowerCase();
+  const b = brand.toLowerCase();
+
+  // Must contain the brand name (or common abbreviation)
+  const brandAliases: Record<string, string[]> = {
+    "hermès": ["hermes", "hermès", "herms", "エルメス"],
+    "louis vuitton": ["louis vuitton", "lv", "ルイヴィトン", "ルイ・ヴィトン"],
+    "chanel": ["chanel", "シャネル"],
+    "gucci": ["gucci", "グッチ"],
+    "rolex": ["rolex", "ロレックス"],
+    "omega": ["omega", "オメガ"],
+    "prada": ["prada", "プラダ"],
+    "dior": ["dior", "ディオール"],
+    "cartier": ["cartier", "カルティエ"],
+    "bulgari": ["bulgari", "bvlgari", "ブルガリ"],
+  };
+
+  const aliases = brandAliases[b] || [b];
+  const hasBrand = aliases.some((alias) => t.includes(alias));
+  if (!hasBrand) return false;
+
+  // Filter out PDF patterns, templates, craft supplies
+  const excludePatterns = [
+    "pdf pattern", "template", "sewing pattern", "craft",
+    "cutting dies", "mold cutter", "sunglasses bag", "glasses case",
+    "phone case", "wallet case", "iphone", "airpod",
+  ];
+  if (excludePatterns.some((p) => t.includes(p))) return false;
+
+  // Check for product name keywords — at least one significant word should match
+  const nameWords = productName.toLowerCase()
+    .split(/[\s\-\/]+/)
+    .filter((w) => w.length > 2 && !["the", "bag", "leather", "canvas"].includes(w));
+
+  // If we have product name keywords, at least one should be in the title
+  // (relaxed check — we don't require all words since titles vary)
+  if (nameWords.length > 0) {
+    const hasProductKeyword = nameWords.some((w) => t.includes(w));
+    // For the brand-only match, also accept if the category matches broadly
+    if (!hasProductKeyword) {
+      // Allow if it's clearly a bag from the same brand (for visual matches)
+      const categoryWords = ["bag", "handbag", "shoulder", "crossbody", "clutch", "sac", "tote"];
+      const hasCategoryMatch = categoryWords.some((w) => t.includes(w));
+      if (!hasCategoryMatch) return false;
+    }
+  }
+
+  return true;
+}
+
+function formatPriceUSD(price: number): string {
+  return `$${price.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
 export async function searchGoogleShopping(query: string): Promise<ShoppingResult[]> {
@@ -112,48 +269,79 @@ export async function searchLensProducts(imageUrl: string): Promise<LensProductR
   return results;
 }
 
+function processPrice(
+  rawPrice: number | null | undefined,
+  priceValue: string | undefined,
+  currencyField: string | undefined,
+  link: string | undefined,
+  source: string | undefined
+): { priceUSD: number | null; priceFormatted: string | null; currency: string } {
+  if (rawPrice == null) {
+    return { priceUSD: null, priceFormatted: null, currency: "USD" };
+  }
+
+  let currency = detectCurrency(priceValue, currencyField, link);
+
+  // Heuristic: very high prices with Japanese sources are likely JPY not USD
+  if (currency === "USD" && isLikelyJPY(rawPrice, link, source)) {
+    currency = "JPY";
+  }
+
+  const priceUSD = convertToUSD(rawPrice, currency);
+  const priceFormatted = formatPriceUSD(priceUSD);
+
+  return { priceUSD, priceFormatted, currency };
+}
+
 export function mergeAndDeduplicate(
   lensVisual: VisualMatch[],
   shopping: ShoppingResult[],
-  lensProducts: LensProductResult[]
+  lensProducts: LensProductResult[],
+  brand: string,
+  productName: string
 ): UnifiedListing[] {
   const seen = new Map<string, UnifiedListing>();
 
   // Process Lens visual matches
   for (const m of lensVisual) {
+    if (!isRelevantListing(m.title, brand, productName)) continue;
     const key = stripTrackingParams(m.link);
-    const price = m.price?.extracted_value ?? null;
+    const { priceUSD, priceFormatted, currency } = processPrice(
+      m.price?.extracted_value, m.price?.value, m.price?.currency, m.link, m.source
+    );
     seen.set(key, {
       id: key,
       title: m.title,
       link: m.link,
       source: m.source,
-      price,
-      priceFormatted: price ? formatPrice(price, m.price?.currency) : null,
-      currency: m.price?.currency || "USD",
+      price: priceUSD,
+      priceFormatted,
+      currency,
       condition: inferCondition(m.title),
       thumbnail: null,
       origin: "lens_visual",
     });
   }
 
-  // Process Google Shopping results
+  // Process Google Shopping results (already USD from Google Shopping US)
   for (const s of shopping) {
-    if (!s.link) continue;
+    if (!s.link || !s.title) continue;
+    if (!isRelevantListing(s.title, brand, productName)) continue;
     const key = stripTrackingParams(s.link);
-    const price = s.extracted_price ?? null;
+    const { priceUSD, priceFormatted, currency } = processPrice(
+      s.extracted_price, s.price, s.currency, s.link, s.source
+    );
     const existing = seen.get(key);
-    // Prefer shopping data (has more fields) or add new
-    if (!existing || (price && !existing.price)) {
+    if (!existing || (priceUSD && !existing.price)) {
       seen.set(key, {
         id: key,
-        title: s.title || "",
+        title: s.title,
         link: s.link,
         source: s.source || "",
-        price,
-        priceFormatted: price ? formatPrice(price) : (s.price || null),
-        currency: s.currency || "USD",
-        condition: inferCondition(s.title || "", s.condition),
+        price: priceUSD,
+        priceFormatted,
+        currency,
+        condition: inferCondition(s.title, s.condition),
         thumbnail: s.thumbnail || existing?.thumbnail || null,
         origin: "google_shopping",
       });
@@ -162,25 +350,27 @@ export function mergeAndDeduplicate(
 
   // Process Lens Products
   for (const p of lensProducts) {
-    if (!p.link) continue;
+    if (!p.link || !p.title) continue;
+    if (!isRelevantListing(p.title, brand, productName)) continue;
     const key = stripTrackingParams(p.link);
-    if (seen.has(key)) continue; // Don't overwrite
-    const price = p.price?.extracted_value ?? null;
+    if (seen.has(key)) continue;
+    const { priceUSD, priceFormatted, currency } = processPrice(
+      p.price?.extracted_value, p.price?.value, p.price?.currency, p.link, p.source
+    );
     seen.set(key, {
       id: key,
-      title: p.title || "",
+      title: p.title,
       link: p.link,
       source: p.source || "",
-      price,
-      priceFormatted: price ? formatPrice(price, p.price?.currency) : null,
-      currency: p.price?.currency || "USD",
-      condition: inferCondition(p.title || ""),
+      price: priceUSD,
+      priceFormatted,
+      currency,
+      condition: inferCondition(p.title),
       thumbnail: p.thumbnail || null,
       origin: "lens_products",
     });
   }
 
-  // Sort by price (priced items first, then by price ascending)
   const listings = Array.from(seen.values());
   listings.sort((a, b) => {
     if (a.price === null && b.price === null) return 0;
@@ -188,6 +378,8 @@ export function mergeAndDeduplicate(
     if (b.price === null) return -1;
     return a.price - b.price;
   });
+
+  console.log(`[Listings] Merged: ${listings.length} relevant (filtered from ${lensVisual.length + shopping.length + lensProducts.length} total)`);
 
   return listings;
 }

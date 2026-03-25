@@ -60,11 +60,13 @@ export async function POST(request: Request) {
       console.warn("[API] Lens products search failed:", lensProductsResult.reason);
     }
 
-    // Step 4: Merge, deduplicate, and compute stats
+    // Step 4: Merge, deduplicate, filter by relevance, and compute stats
     const listings = mergeAndDeduplicate(
       lensData.visualMatches,
       shoppingResults,
-      lensProductResults
+      lensProductResults,
+      analysis.brand,
+      analysis.productName
     );
     const priceStats = computePriceStats(listings);
 

@@ -1,31 +1,15 @@
-import { CompressedSearchData } from "./types";
-
-interface SerpApiResult {
-  title?: string;
-  snippet?: string;
-  link?: string;
-  source?: string;
-  rich_snippet?: {
-    bottom?: {
-      detected_extensions?: {
-        price?: number;
-        currency?: string;
-      };
-      extensions?: string[];
-    };
-  };
-}
+import { LensSearchData } from "./types";
 
 export async function searchByImage(
   imageUrl: string
-): Promise<CompressedSearchData> {
+): Promise<LensSearchData> {
   const apiKey = process.env.SERPAPI_API_KEY;
   if (!apiKey) {
     throw new Error("SERPAPI_API_KEY is not configured");
   }
 
   // Strip query params from image URLs — cache-busting params (e.g. ?20260305121953)
-  // cause Google reverse image search to return irrelevant results
+  // cause Google Lens to return less accurate results
   let cleanImageUrl = imageUrl;
   try {
     const parsed = new URL(imageUrl);
@@ -34,7 +18,7 @@ export async function searchByImage(
       parsed.search = "";
       cleanImageUrl = parsed.toString();
       if (cleanImageUrl !== imageUrl) {
-        console.log("[SerpAPI] Stripped query params from image URL:", imageUrl, "→", cleanImageUrl);
+        console.log("[SerpAPI] Stripped query params:", imageUrl, "→", cleanImageUrl);
       }
     }
   } catch {
@@ -42,14 +26,13 @@ export async function searchByImage(
   }
 
   const params = new URLSearchParams({
-    engine: "google_reverse_image",
-    image_url: cleanImageUrl,
+    engine: "google_lens",
+    url: cleanImageUrl,
     api_key: apiKey,
   });
 
   const requestUrl = `https://serpapi.com/search?${params}`;
-  console.log("[SerpAPI] Request URL:", requestUrl.replace(apiKey, "***"));
-  console.log("[SerpAPI] Image URL being searched:", cleanImageUrl);
+  console.log("[SerpAPI] Google Lens request for:", cleanImageUrl);
 
   const response = await fetch(requestUrl, {
     signal: AbortSignal.timeout(20000),
@@ -57,63 +40,49 @@ export async function searchByImage(
 
   if (!response.ok) {
     const text = await response.text();
-    console.error("[SerpAPI] Error response:", response.status, text);
+    console.error("[SerpAPI] Error:", response.status, text);
     throw new Error(`SerpAPI error (${response.status}): ${text}`);
   }
 
   const data = await response.json();
 
-  console.log("[SerpAPI] Response status:", data.search_information?.organic_results_state);
-  console.log("[SerpAPI] Total results:", data.search_information?.total_results);
-  console.log("[SerpAPI] image_results count:", data.image_results?.length ?? 0);
-  console.log("[SerpAPI] inline_images count:", data.inline_images?.length ?? 0);
+  console.log("[SerpAPI] visual_matches count:", data.visual_matches?.length ?? 0);
   console.log("[SerpAPI] Has knowledge_graph:", !!data.knowledge_graph);
 
-  if (data.error) {
-    console.warn("[SerpAPI] API returned error field:", data.error);
-  }
-
-  // Log first few raw results for debugging
-  if (data.image_results?.length > 0) {
-    console.log("[SerpAPI] First result title:", data.image_results[0].title);
-    console.log("[SerpAPI] First result snippet:", data.image_results[0].snippet);
-    if (data.image_results[0].rich_snippet) {
-      console.log("[SerpAPI] First result rich_snippet:", JSON.stringify(data.image_results[0].rich_snippet));
+  if (data.visual_matches?.length > 0) {
+    console.log("[SerpAPI] Top match:", data.visual_matches[0].title);
+    if (data.visual_matches[0].price) {
+      console.log("[SerpAPI] Top match price:", JSON.stringify(data.visual_matches[0].price));
     }
   } else {
-    console.warn("[SerpAPI] No image_results returned. Raw keys:", Object.keys(data));
+    console.warn("[SerpAPI] No visual_matches returned. Keys:", Object.keys(data));
   }
 
-  // Compress the response to only the fields useful for product identification
-  const compressed: CompressedSearchData = {
-    knowledgeGraph: data.knowledge_graph
-      ? {
-          title: data.knowledge_graph.title,
-          type: data.knowledge_graph.type,
-          description: data.knowledge_graph.description,
-          source: data.knowledge_graph.source,
-        }
-      : null,
-    topResults: (data.image_results || []).slice(0, 8).map(
-      (r: SerpApiResult) => ({
-        title: r.title || "",
-        snippet: r.snippet || "",
-        link: r.link || "",
-        source: r.source || "",
-        price: r.rich_snippet?.bottom?.detected_extensions?.price
-          ? `${r.rich_snippet.bottom.detected_extensions.currency || "$"}${r.rich_snippet.bottom.detected_extensions.price}`
+  const lensData: LensSearchData = {
+    visualMatches: (data.visual_matches || []).slice(0, 10).map(
+      (m: Record<string, unknown>) => ({
+        title: (m.title as string) || "",
+        link: (m.link as string) || "",
+        source: (m.source as string) || "",
+        price: m.price
+          ? {
+              value: (m.price as Record<string, unknown>).value as string,
+              currency: (m.price as Record<string, unknown>).currency as string,
+              extracted_value: (m.price as Record<string, unknown>).extracted_value as number,
+            }
           : undefined,
       })
     ),
-    inlineImages: (data.inline_images || []).slice(0, 5).map(
-      (img: Record<string, string>) => ({
-        title: img.title,
-        source: img.source,
-      })
-    ),
+    knowledgeGraph: data.knowledge_graph
+      ? {
+          title: data.knowledge_graph[0]?.title,
+          subtitle: data.knowledge_graph[0]?.subtitle,
+        }
+      : null,
+    imageUrl: cleanImageUrl,
   };
 
-  console.log("[SerpAPI] Compressed data:", JSON.stringify(compressed, null, 2));
+  console.log("[SerpAPI] Compressed lens data:", JSON.stringify(lensData, null, 2));
 
-  return compressed;
+  return lensData;
 }

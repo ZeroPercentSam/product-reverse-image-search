@@ -1,3 +1,26 @@
+export interface VisualMatch {
+  title: string;
+  link: string;
+  source: string;
+  price?: { value: string; currency: string; extracted_value: number };
+}
+
+export interface LensSearchData {
+  visualMatches: VisualMatch[];
+  knowledgeGraph: {
+    title?: string;
+    subtitle?: string;
+  } | null;
+  imageUrl: string;
+}
+
+export interface ProductSource {
+  title: string;
+  link: string;
+  source: string;
+  price?: string;
+}
+
 export interface ProductAnalysis {
   brand: string;
   productName: string;
@@ -5,52 +28,54 @@ export interface ProductAnalysis {
   priceRange: string;
   features: string[];
   confidence: "High" | "Medium" | "Low";
+  confidenceScore: number;
   authenticationNotes: string;
   summary: string;
+  sources: ProductSource[];
+  verificationNotes?: string;
 }
 
-export interface CompressedSearchData {
-  knowledgeGraph: {
-    title?: string;
-    type?: string;
-    description?: string;
-    source?: { name: string; link: string };
-  } | null;
-  topResults: Array<{
-    title: string;
-    snippet: string;
-    link: string;
-    source?: string;
-    price?: string;
-  }>;
-  inlineImages: Array<{
-    title?: string;
-    source?: string;
-  }>;
-}
+export const SYSTEM_PROMPT = `You are a luxury product identification specialist with expert visual analysis skills. You will receive:
+1. The actual product image to examine directly
+2. Google Lens visual match results from retailers and marketplaces
 
-export const SYSTEM_PROMPT = `You are a luxury product identification specialist. You will receive Google Reverse Image Search results for a product image. Your job is to identify the product and provide a structured analysis.
+Your task is to identify the EXACT product using both sources of information.
 
-Analyze the search results and determine:
+## Visual Analysis (PRIMARY)
+Examine the image directly. Look for:
+- Brand logos, stamps, engravings, or embossed markings
+- Hardware style (clasps, zippers, locks, buckles)
+- Material type and texture (leather grain, canvas weave, metal finish)
+- Design silhouette, shape, and proportions
+- Pattern details (monograms, prints, colorways)
+- Stitching style and construction details
 
-1. **Brand**: The luxury brand/designer (e.g., Louis Vuitton, Gucci, Rolex, Hermes)
-2. **Product Name/Model**: The specific product name and model number if identifiable
-3. **Category**: The product category (e.g., Handbag, Watch, Shoes, Jewelry, Clothing)
-4. **Estimated Price Range**: Based on the search results and your knowledge, provide a realistic retail price range in USD
-5. **Key Features**: Notable design elements, materials, colorway, or collection details
-6. **Confidence**: Your confidence level in this identification (High / Medium / Low)
-7. **Authentication Notes**: Any observations about whether search results suggest this could be authentic or a replica
+## Cross-Reference with Google Lens Results
+Compare what you see in the image against the product titles and sources from Google Lens. The Lens results often contain the exact product name and model — use these to confirm or refine your visual identification.
 
-If the image does not appear to be a luxury product, state that clearly and describe what the product actually appears to be.
+## Confidence Scoring
+- Score 80-100: Visual analysis and Lens results strongly agree on the exact product
+- Score 50-79: General agreement on brand but model/variant uncertain
+- Score 20-49: Lens results are inconsistent or don't match what you see
+- Score 0-19: Cannot identify the product reliably
 
-Respond in valid JSON with this exact structure:
+## Discrepancy Handling
+If the Lens results suggest a different product than what you see in the image, trust your visual analysis but note the discrepancy in verificationNotes. For example, if Lens says "Kelly Bag" but you see a different clasp style, say so.
+
+## Sources
+Include the most relevant Google Lens matches as sources. Include their prices when available.
+
+Respond in valid JSON:
 {
   "brand": "string",
-  "productName": "string",
+  "productName": "string (be specific — include model name, size variant like PM/MM/GM, material)",
   "category": "string",
-  "priceRange": "string",
+  "priceRange": "string (USD range based on source prices and your knowledge)",
   "features": ["string"],
   "confidence": "High | Medium | Low",
+  "confidenceScore": 0-100,
   "authenticationNotes": "string",
-  "summary": "string"
+  "summary": "string",
+  "sources": [{"title": "string", "link": "string", "source": "string", "price": "string or null"}],
+  "verificationNotes": "string or null (only if visual analysis disagrees with Lens results)"
 }`;

@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { ProductAnalysis, CompressedSearchData } from "@/lib/types";
+import { ProductAnalysis, LensSearchData } from "@/lib/types";
 import ResultCard from "./ResultCard";
 
 export default function SearchForm() {
   const [imageUrl, setImageUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ProductAnalysis | null>(null);
-  const [searchData, setSearchData] = useState<CompressedSearchData | null>(null);
+  const [lensData, setLensData] = useState<LensSearchData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
@@ -20,7 +20,7 @@ export default function SearchForm() {
     setLoading(true);
     setError(null);
     setResult(null);
-    setSearchData(null);
+    setLensData(null);
 
     try {
       const res = await fetch("/api/identify", {
@@ -35,7 +35,7 @@ export default function SearchForm() {
         setError(data.error || "Something went wrong");
       } else {
         setResult(data.data);
-        setSearchData(data.searchData || null);
+        setLensData(data.lensData || null);
       }
     } catch {
       setError("Failed to connect to the server. Please try again.");
@@ -134,17 +134,19 @@ export default function SearchForm() {
           <button
             type="button"
             onClick={() => setShowDebug(!showDebug)}
-            className="text-xs text-neutral-400 hover:text-neutral-600 transition"
+            className="text-xs text-neutral-400 transition hover:text-neutral-600"
           >
             {showDebug ? "Hide" : "Show"} Debug Info
           </button>
-          {showDebug && searchData && (
+          {showDebug && lensData && (
             <pre className="mt-2 max-h-96 overflow-auto rounded-lg bg-neutral-900 p-4 text-xs text-green-400">
-              {JSON.stringify(searchData, null, 2)}
+              {JSON.stringify(lensData, null, 2)}
             </pre>
           )}
-          {showDebug && !searchData && (
-            <p className="mt-2 text-xs text-neutral-400">No search data available.</p>
+          {showDebug && !lensData && (
+            <p className="mt-2 text-xs text-neutral-400">
+              No lens data available.
+            </p>
           )}
         </div>
       )}

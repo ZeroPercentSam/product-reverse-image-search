@@ -25,15 +25,15 @@ export async function POST(request: Request) {
 
     console.log("[API] Received identify request for URL:", imageUrl);
 
-    // Step 1: Reverse image search via SerpAPI
-    const searchData = await searchByImage(imageUrl);
-    console.log("[API] SerpAPI returned", searchData.topResults.length, "results, knowledge_graph:", !!searchData.knowledgeGraph);
+    // Step 1: Google Lens visual search via SerpAPI
+    const lensData = await searchByImage(imageUrl);
+    console.log("[API] Google Lens returned", lensData.visualMatches.length, "visual matches");
 
-    // Step 2: AI product identification via OpenRouter
-    const analysis = await identifyProduct(searchData);
-    console.log("[API] AI identified:", analysis.brand, "-", analysis.productName, "(", analysis.confidence, ")");
+    // Step 2: Vision AI identification with image + Lens data
+    const analysis = await identifyProduct(lensData, lensData.imageUrl);
+    console.log("[API] AI identified:", analysis.brand, "-", analysis.productName, "(score:", analysis.confidenceScore, ")");
 
-    return NextResponse.json({ success: true, data: analysis, searchData });
+    return NextResponse.json({ success: true, data: analysis, lensData });
   } catch (error) {
     console.error("Identify API error:", error);
     const message =

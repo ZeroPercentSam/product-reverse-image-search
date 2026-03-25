@@ -21,6 +21,43 @@ export interface ProductSource {
   price?: string;
 }
 
+export interface UnifiedListing {
+  id: string;
+  title: string;
+  link: string;
+  source: string;
+  price: number | null;
+  priceFormatted: string | null;
+  currency: string;
+  condition: "new" | "pre-owned" | "unknown";
+  thumbnail: string | null;
+  origin: "lens_visual" | "lens_products" | "google_shopping";
+}
+
+export interface ConditionStats {
+  min: number;
+  max: number;
+  median: number;
+  count: number;
+}
+
+export interface PriceStats {
+  min: number;
+  max: number;
+  median: number;
+  average: number;
+  count: number;
+  byCondition: {
+    new: ConditionStats | null;
+    preOwned: ConditionStats | null;
+  };
+}
+
+export interface ListingsData {
+  listings: UnifiedListing[];
+  priceStats: PriceStats | null;
+}
+
 export interface ProductAnalysis {
   brand: string;
   productName: string;

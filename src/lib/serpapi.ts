@@ -59,7 +59,7 @@ export async function searchByImage(
   }
 
   const lensData: LensSearchData = {
-    visualMatches: (data.visual_matches || []).slice(0, 10).map(
+    visualMatches: (data.visual_matches || []).map(
       (m: Record<string, unknown>) => ({
         title: (m.title as string) || "",
         link: (m.link as string) || "",

@@ -1,14 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { ProductAnalysis, LensSearchData } from "@/lib/types";
+import { ProductAnalysis, LensSearchData, ListingsData } from "@/lib/types";
 import ResultCard from "./ResultCard";
+import PriceChart from "./PriceChart";
+import ListingsTable from "./ListingsTable";
 
 export default function SearchForm() {
   const [imageUrl, setImageUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ProductAnalysis | null>(null);
   const [lensData, setLensData] = useState<LensSearchData | null>(null);
+  const [listingsData, setListingsData] = useState<ListingsData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
@@ -21,6 +24,7 @@ export default function SearchForm() {
     setError(null);
     setResult(null);
     setLensData(null);
+    setListingsData(null);
 
     try {
       const res = await fetch("/api/identify", {
@@ -36,6 +40,7 @@ export default function SearchForm() {
       } else {
         setResult(data.data);
         setLensData(data.lensData || null);
+        setListingsData(data.listingsData || null);
       }
     } catch {
       setError("Failed to connect to the server. Please try again.");
@@ -129,6 +134,17 @@ export default function SearchForm() {
 
       {result && <ResultCard data={result} />}
 
+      {listingsData?.priceStats && listingsData.listings.length > 0 && (
+        <PriceChart
+          listings={listingsData.listings}
+          stats={listingsData.priceStats}
+        />
+      )}
+
+      {listingsData && listingsData.listings.length > 0 && (
+        <ListingsTable listings={listingsData.listings} />
+      )}
+
       {(result || error) && (
         <div className="mt-6">
           <button
@@ -140,13 +156,8 @@ export default function SearchForm() {
           </button>
           {showDebug && lensData && (
             <pre className="mt-2 max-h-96 overflow-auto rounded-lg bg-neutral-900 p-4 text-xs text-green-400">
-              {JSON.stringify(lensData, null, 2)}
+              {JSON.stringify({ lensData, listingsData }, null, 2)}
             </pre>
-          )}
-          {showDebug && !lensData && (
-            <p className="mt-2 text-xs text-neutral-400">
-              No lens data available.
-            </p>
           )}
         </div>
       )}

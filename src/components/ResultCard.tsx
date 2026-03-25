@@ -79,36 +79,6 @@ export default function ResultCard({ data }: { data: ProductAnalysis }) {
         </div>
       )}
 
-      {data.sources && data.sources.length > 0 && (
-        <div>
-          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-neutral-500">
-            Matching Listings
-          </h3>
-          <div className="space-y-2">
-            {data.sources.map((src, i) => (
-              <a
-                key={i}
-                href={src.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between rounded-lg border border-neutral-200 p-3 transition hover:bg-neutral-50"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-neutral-800">
-                    {src.title}
-                  </p>
-                  <p className="text-xs text-neutral-500">{src.source}</p>
-                </div>
-                {src.price && (
-                  <span className="ml-3 shrink-0 text-sm font-semibold text-neutral-700">
-                    {src.price}
-                  </span>
-                )}
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
